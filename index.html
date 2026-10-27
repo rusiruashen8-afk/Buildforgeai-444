@@ -5,110 +5,132 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>BuildForge AI - Bolt Clone + Auth</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- FIREBASE SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
-body { font-family: 'JetBrains Mono', monospace; background: #0a0a0a; }
+body { font-family: 'JetBrains Mono', monospace; }
 </style>
 </head>
-<body class="text-white h-screen flex flex-col">
+<body class="text-white bg-[#0a0a0a] h-screen flex flex-col">
 
 <!-- LOGIN MODAL - First eke pennana -->
-<div id="loginModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center">
-<div class="bg-[#111] border border-zinc-800 p-8 rounded-2xl w-[380px] text-center">
-<div class="mb-6"><i class="fa-solid fa-bolt text-yellow-400 text-3xl"></i><h1 class="text-xl font-bold mt-2">BuildForge AI</h1><p class="text-xs text-zinc-500 mt-1">Sign in to start building</p></div>
-
-<button onclick="signIn('google')" class="w-full bg-white text-black py-3 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2 hover:bg-zinc-200"><i class="fa-brands fa-google"></i> Continue with Google</button>
-<button onclick="signIn('github')" class="w-full bg-zinc-800 py-3 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2 hover:bg-zinc-700"><i class="fa-brands fa-github"></i> Continue with GitHub</button>
-<button onclick="signIn('facebook')" class="w-full bg-[#1877F2] py-3 rounded-xl font-bold text-sm mb-6 flex items-center justify-center gap-2 hover:bg-blue-600"><i class="fa-brands fa-facebook"></i> Continue with Facebook</button>
-
-<p class="text-[10px] text-zinc-600">By continuing you agree to Terms & Privacy</p>
-</div>
-</div>
-
-<!-- HEADER -->
-<header class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 bg-[#111]">
-<div class="flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-400"></i><span class="font-bold">BuildForge AI</span></div>
-<div class="flex items-center gap-3">
-<span id="userEmail" class="text-xs text-zinc-400"></span>
-<img id="userPic" class="w-7 h-7 rounded-full hidden"/>
-<button onclick="logout()" class="text-xs text-zinc-500 hover:text-white">Logout</button>
-<button id="getCodeBtn" class="px-4 py-1.5 bg-zinc-800 rounded-lg text-sm">Get Code</button>
-<button class="px-4 py-1.5 bg-white text-black rounded-lg text-sm font-bold">Deploy</button>
-</div>
-</header>
-
-<!-- REST OF BOLT UI (Same as before) -->
-<div class="flex flex-1 overflow-hidden">
-<div class="w-[380px] border-r border-zinc-800 flex flex-col bg-[#111]">
-<div class="p-4 flex-1 overflow-y-auto" id="chatContainer"><div class="text-zinc-500 text-xs text-center mt-10">What do you want to build?</div></div>
-<div id="thinkingBox" class="hidden border-t border-zinc-800 p-3 bg-[#161616]"><div class="text-xs text-zinc-400">BuildForge AI is thinking...</div><div id="thinkingSteps" class="space-y-1 text-[11px] mt-2"></div></div>
-<div class="p-3 border-t border-zinc-800"><div class="flex bg-[#1e1e1e] rounded-xl p-2 border border-zinc-700"><textarea id="promptInput" placeholder="How can BuildForge help you today?" class="flex-1 bg-transparent outline-none text-sm resize-none h-[44px]"></textarea><button id="sendBtn" class="w-8 h-8 bg-white text-black rounded-lg"><i class="fa-solid fa-arrow-up"></i></button></div></div>
-</div>
-<div class="flex-1 flex flex-col bg-[#0e0e0e]"><pre id="codeEditor" class="flex-1 p-4 text-xs overflow-auto text-zinc-300">// Login to generate code...</pre></div>
-<div class="w-[45%] border-l border-zinc-800 flex flex-col bg-white"><div class="h-9 bg-[#111] flex items-center justify-between px-3 text-xs"><span class="text-zinc-400">Preview</span><button id="openNewTab" class="text-zinc-400">Open Link</button></div><iframe id="previewFrame" class="flex-1 w-full border-0 bg-white"></iframe></div>
+<div id="loginModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  <div class="bg-[#111] border border-zinc-800 rounded-2xl w-full max-w-sm p-8 text-center">
+    <h1 class="text-2xl font-bold mb-2">BuildForge AI</h1>
+    <p class="text-zinc-400 text-sm mb-6">Login to start building machan!</p>
+    
+    <button id="googleBtn" class="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-zinc-200 flex items-center justify-center gap-2">
+      <i class="bi bi-google"></i> Continue with Google
+    </button>
+    
+    <button id="githubBtn" class="w-full mt-3 bg-zinc-800 text-white py-3 rounded-lg font-semibold hover:bg-zinc-700 flex items-center justify-center gap-2">
+      <i class="bi bi-github"></i> Continue with GitHub
+    </button>
+    
+    <p id="loginError" class="text-red-400 text-xs mt-4 hidden"></p>
+    <p class="text-[10px] text-zinc-600 mt-4">Secure login via Firebase</p>
+  </div>
 </div>
 
-<script>
-// ********** FIREBASE CONFIG - MEKA UBA REPLACE KARANNA **********
-const firebaseConfig = {
-apiKey: "AIzaSyXXXX-REPLACE-WITH-YOURS",
-authDomain: "buildforge-ai.firebaseapp.com",
-projectId: "buildforge-ai",
-appId: "1:xxx:web:xxx"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+<!-- MAIN APP -->
+<div class="flex flex-col h-screen">
+  <header class="border-b border-zinc-800 p-4 flex justify-between items-center">
+    <h1 class="font-bold text-lg">⚡ BuildForge AI</h1>
+    <div class="flex items-center gap-3">
+      <span id="userEmail" class="text-xs text-zinc-400 hidden"></span>
+      <button id="logoutBtn" class="hidden text-xs bg-zinc-800 px-3 py-1 rounded hover:bg-red-600">Logout</button>
+    </div>
+  </header>
 
-// SIGN IN FUNCTION
-function signIn(providerName){
-let provider;
-if(providerName==='google') provider = new firebase.auth.GoogleAuthProvider();
-if(providerName==='github') provider = new firebase.auth.GithubAuthProvider();
-if(providerName==='facebook') provider = new firebase.auth.FacebookAuthProvider();
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Panel -->
+    <div class="w-full md:w-[400px] border-r border-zinc-800 flex flex-col p-4 bg-[#0a0a0a]">
+      <textarea id="promptInput" placeholder="Build a portfolio, SaaS landing, etc... machan" class="w-full h-32 bg-[#111] border border-zinc-800 rounded-xl p-3 text-sm outline-none focus:border-white resize-none"></textarea>
+      <button id="generateBtn" class="mt-3 w-full bg-white text-black py-3 rounded-xl font-bold hover:bg-zinc-200">Generate Website ✨</button>
+      
+      <div id="thinkingSteps" class="mt-6 space-y-2 text-xs text-zinc-400 hidden"></div>
+    </div>
 
-auth.signInWithPopup(provider).then(result=>{
-console.log("Logged in:", result.user.email);
-}).catch(err=>alert(err.message));
-}
+    <!-- Right Preview -->
+    <div class="flex-1 bg-[#111] relative">
+      <div id="emptyState" class="absolute inset-0 flex items-center justify-center text-zinc-600 text-sm">Preview will appear here...</div>
+      <iframe id="previewFrame" class="w-full h-full border-0 bg-white hidden"></iframe>
+    </div>
+  </div>
+</div>
 
-function logout(){ auth.signOut(); }
+<script type="module">
+import { auth, googleProvider, githubProvider } from './lib/firebase.js';
+import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// AUTH STATE LISTENER
-auth.onAuthStateChanged(user=>{
-if(user){
-document.getElementById('loginModal').classList.add('hidden');
-document.getElementById('userEmail').innerText = user.email;
-if(user.photoURL){
-const pic = document.getElementById('userPic');
-pic.src = user.photoURL;
-pic.classList.remove('hidden');
-}
-// Save user to Supabase / DB for credits
-// fetch('/api/save-user', {method:'POST', body: JSON.stringify({email:user.email})})
-}else{
-document.getElementById('loginModal').classList.remove('hidden');
-}
+let currentUser = null;
+
+// Elements
+const loginModal = document.getElementById('loginModal');
+const googleBtn = document.getElementById('googleBtn');
+const githubBtn = document.getElementById('githubBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const userEmail = document.getElementById('userEmail');
+const loginError = document.getElementById('loginError');
+const promptInput = document.getElementById('promptInput');
+const generateBtn = document.getElementById('generateBtn');
+const previewFrame = document.getElementById('previewFrame');
+const emptyState = document.getElementById('emptyState');
+const thinkingSteps = document.getElementById('thinkingSteps');
+
+// Check login state
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    loginModal.classList.add('hidden');
+    userEmail.textContent = user.email;
+    userEmail.classList.remove('hidden');
+    logoutBtn.classList.remove('hidden');
+    // Save user to DB for credits
+    fetch('/api/save-user', { method: 'POST', body: JSON.stringify({ email: user.email, uid: user.uid }), headers: {'Content-Type':'application/json'} }).catch(()=>{});
+  } else {
+    currentUser = null;
+    loginModal.classList.remove('hidden');
+    userEmail.classList.add('hidden');
+    logoutBtn.classList.add('hidden');
+  }
 });
 
-// SAME BOLT LOGIC AS BEFORE
-const promptInput=document.getElementById('promptInput'), sendBtn=document.getElementById('sendBtn'), thinkingBox=document.getElementById('thinkingBox'), thinkingSteps=document.getElementById('thinkingSteps'), codeEditor=document.getElementById('codeEditor'), previewFrame=document.getElementById('previewFrame'), chatContainer=document.getElementById('chatContainer');
+// Google Login
+googleBtn.onclick = async () => {
+  loginError.classList.add('hidden');
+  googleBtn.textContent = "Connecting...";
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (err) {
+    console.error(err);
+    loginError.textContent = err.message;
+    loginError.classList.remove('hidden');
+  }
+  googleBtn.innerHTML = '<i class="bi bi-google"></i> Continue with Google';
+};
 
-async function generateWebsite(){
-if(!auth.currentUser){ alert('Please login first machan!'); return; }
-const prompt=promptInput.value.trim(); if(!prompt) return;
-chatContainer.innerHTML=`<div class="bg-zinc-800 p-3 rounded-lg text-sm">${prompt}</div>`;
-thinkingBox.classList.remove('hidden'); thinkingSteps.innerHTML='';
-for(let s of ["Analyzing prompt...","Planning UI...","Generating Tailwind...","Finalizing..."]){
-const d=document.createElement('div'); d.innerHTML=`✓ ${s}`; thinkingSteps.appendChild(d); await new Promise(r=>setTimeout(r,500));
-}
-const code=`<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"><\/script></head><body class="bg-black text-white flex items-center justify-center h-screen"><h1 class="text-5xl font-bold">${prompt}</h1></body></html>`;
-codeEditor.textContent=code; previewFrame.srcdoc=code; thinkingBox.classList.add('hidden'); promptInput.value='';
-}
-sendBtn.onclick=generateWebsite;
-</script>
-</body>
-</html>
+// GitHub Login
+githubBtn.onclick = async () => {
+  try {
+    await signInWithPopup(auth, githubProvider);
+  } catch (err) {
+    loginError.textContent = err.message;
+    loginError.classList.remove('hidden');
+  }
+};
+
+// Logout
+logoutBtn.onclick = () => signOut(auth);
+
+// Generate Website - C AS BEFORE
+generateBtn.onclick = () => generateWebsite();
+
+function generateWebsite(){
+  if(!currentUser){ alert('Please login first machan!'); return; }
+  const prompt = promptInput.value.trim(); 
+  if(!prompt) return;
+
+  thinkingSteps.classList.remove('hidden');
+  thinkingSteps.innerHTML = "";
+  const steps = ["Analyzing prompt...
