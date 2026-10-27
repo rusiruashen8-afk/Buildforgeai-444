@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BuildForge AI - Bolt Clone + Auth</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- FIREBASE SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+body { font-family: 'JetBrains Mono', monospace; background: #0a0a0a; }
+</style>
+</head>
+<body class="text-white h-screen flex flex-col">
+
+<!-- LOGIN MODAL - First eke pennana -->
+<div id="loginModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center">
+<div class="bg-[#111] border border-zinc-800 p-8 rounded-2xl w-[380px] text-center">
+<div class="mb-6"><i class="fa-solid fa-bolt text-yellow-400 text-3xl"></i><h1 class="text-xl font-bold mt-2">BuildForge AI</h1><p class="text-xs text-zinc-500 mt-1">Sign in to start building</p></div>
+
+<button onclick="signIn('google')" class="w-full bg-white text-black py-3 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2 hover:bg-zinc-200"><i class="fa-brands fa-google"></i> Continue with Google</button>
+<button onclick="signIn('github')" class="w-full bg-zinc-800 py-3 rounded-xl font-bold text-sm mb-3 flex items-center justify-center gap-2 hover:bg-zinc-700"><i class="fa-brands fa-github"></i> Continue with GitHub</button>
+<button onclick="signIn('facebook')" class="w-full bg-[#1877F2] py-3 rounded-xl font-bold text-sm mb-6 flex items-center justify-center gap-2 hover:bg-blue-600"><i class="fa-brands fa-facebook"></i> Continue with Facebook</button>
+
+<p class="text-[10px] text-zinc-600">By continuing you agree to Terms & Privacy</p>
+</div>
+</div>
+
+<!-- HEADER -->
+<header class="h-14 border-b border-zinc-800 flex items-center justify-between px-4 bg-[#111]">
+<div class="flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-400"></i><span class="font-bold">BuildForge AI</span></div>
+<div class="flex items-center gap-3">
+<span id="userEmail" class="text-xs text-zinc-400"></span>
+<img id="userPic" class="w-7 h-7 rounded-full hidden"/>
+<button onclick="logout()" class="text-xs text-zinc-500 hover:text-white">Logout</button>
+<button id="getCodeBtn" class="px-4 py-1.5 bg-zinc-800 rounded-lg text-sm">Get Code</button>
+<button class="px-4 py-1.5 bg-white text-black rounded-lg text-sm font-bold">Deploy</button>
+</div>
+</header>
+
+<!-- REST OF BOLT UI (Same as before) -->
+<div class="flex flex-1 overflow-hidden">
+<div class="w-[380px] border-r border-zinc-800 flex flex-col bg-[#111]">
+<div class="p-4 flex-1 overflow-y-auto" id="chatContainer"><div class="text-zinc-500 text-xs text-center mt-10">What do you want to build?</div></div>
+<div id="thinkingBox" class="hidden border-t border-zinc-800 p-3 bg-[#161616]"><div class="text-xs text-zinc-400">BuildForge AI is thinking...</div><div id="thinkingSteps" class="space-y-1 text-[11px] mt-2"></div></div>
+<div class="p-3 border-t border-zinc-800"><div class="flex bg-[#1e1e1e] rounded-xl p-2 border border-zinc-700"><textarea id="promptInput" placeholder="How can BuildForge help you today?" class="flex-1 bg-transparent outline-none text-sm resize-none h-[44px]"></textarea><button id="sendBtn" class="w-8 h-8 bg-white text-black rounded-lg"><i class="fa-solid fa-arrow-up"></i></button></div></div>
+</div>
+<div class="flex-1 flex flex-col bg-[#0e0e0e]"><pre id="codeEditor" class="flex-1 p-4 text-xs overflow-auto text-zinc-300">// Login to generate code...</pre></div>
+<div class="w-[45%] border-l border-zinc-800 flex flex-col bg-white"><div class="h-9 bg-[#111] flex items-center justify-between px-3 text-xs"><span class="text-zinc-400">Preview</span><button id="openNewTab" class="text-zinc-400">Open Link</button></div><iframe id="previewFrame" class="flex-1 w-full border-0 bg-white"></iframe></div>
+</div>
+
+<script>
+// ********** FIREBASE CONFIG - MEKA UBA REPLACE KARANNA **********
+const firebaseConfig = {
+apiKey: "AIzaSyXXXX-REPLACE-WITH-YOURS",
+authDomain: "buildforge-ai.firebaseapp.com",
+projectId: "buildforge-ai",
+appId: "1:xxx:web:xxx"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// SIGN IN FUNCTION
+function signIn(providerName){
+let provider;
+if(providerName==='google') provider = new firebase.auth.GoogleAuthProvider();
+if(providerName==='github') provider = new firebase.auth.GithubAuthProvider();
+if(providerName==='facebook') provider = new firebase.auth.FacebookAuthProvider();
+
+auth.signInWithPopup(provider).then(result=>{
+console.log("Logged in:", result.user.email);
+}).catch(err=>alert(err.message));
+}
+
+function logout(){ auth.signOut(); }
+
+// AUTH STATE LISTENER
+auth.onAuthStateChanged(user=>{
+if(user){
+document.getElementById('loginModal').classList.add('hidden');
+document.getElementById('userEmail').innerText = user.email;
+if(user.photoURL){
+const pic = document.getElementById('userPic');
+pic.src = user.photoURL;
+pic.classList.remove('hidden');
+}
+// Save user to Supabase / DB for credits
+// fetch('/api/save-user', {method:'POST', body: JSON.stringify({email:user.email})})
+}else{
+document.getElementById('loginModal').classList.remove('hidden');
+}
+});
+
+// SAME BOLT LOGIC AS BEFORE
+const promptInput=document.getElementById('promptInput'), sendBtn=document.getElementById('sendBtn'), thinkingBox=document.getElementById('thinkingBox'), thinkingSteps=document.getElementById('thinkingSteps'), codeEditor=document.getElementById('codeEditor'), previewFrame=document.getElementById('previewFrame'), chatContainer=document.getElementById('chatContainer');
+
+async function generateWebsite(){
+if(!auth.currentUser){ alert('Please login first machan!'); return; }
+const prompt=promptInput.value.trim(); if(!prompt) return;
+chatContainer.innerHTML=`<div class="bg-zinc-800 p-3 rounded-lg text-sm">${prompt}</div>`;
+thinkingBox.classList.remove('hidden'); thinkingSteps.innerHTML='';
+for(let s of ["Analyzing prompt...","Planning UI...","Generating Tailwind...","Finalizing..."]){
+const d=document.createElement('div'); d.innerHTML=`✓ ${s}`; thinkingSteps.appendChild(d); await new Promise(r=>setTimeout(r,500));
+}
+const code=`<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"><\/script></head><body class="bg-black text-white flex items-center justify-center h-screen"><h1 class="text-5xl font-bold">${prompt}</h1></body></html>`;
+codeEditor.textContent=code; previewFrame.srcdoc=code; thinkingBox.classList.add('hidden'); promptInput.value='';
+}
+sendBtn.onclick=generateWebsite;
+</script>
+</body>
+</html>
